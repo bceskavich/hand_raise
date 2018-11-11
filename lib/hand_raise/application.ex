@@ -11,7 +11,8 @@ defmodule HandRaise.Application do
       # Start the Ecto repository
       HandRaise.Repo,
       # Start the endpoint when the application starts
-      HandRaiseWeb.Endpoint
+      HandRaiseWeb.Endpoint,
+      HandRaise.Presence
       # Starts a worker by calling: HandRaise.Worker.start_link(arg)
       # {HandRaise.Worker, arg},
     ]
