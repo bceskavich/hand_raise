@@ -2,7 +2,8 @@ defmodule HandRaiseWeb.UserSocket do
   use Phoenix.Socket
 
   ## Channels
-  channel "room:*", HandRaiseWeb.RoomChannel
+  channel "room:lobby", HandRaiseWeb.LobbyChannel
+  # channel "room:*", HandRaiseWeb.SessionChannel
 
   # Socket params are passed from the client and can
   # be used to verify and authenticate a user. After
