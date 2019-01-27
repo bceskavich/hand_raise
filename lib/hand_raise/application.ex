@@ -12,9 +12,9 @@ defmodule HandRaise.Application do
       HandRaise.Repo,
       # Start the endpoint when the application starts
       HandRaiseWeb.Endpoint,
-      HandRaise.Presence
-      # Starts a worker by calling: HandRaise.Worker.start_link(arg)
-      # {HandRaise.Worker, arg},
+      HandRaise.Presence,
+      # The supervision tree for managing app sessions
+      HandRaise.SessionServer.DynamicSupervisor
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
