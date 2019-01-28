@@ -1,7 +1,7 @@
 defmodule HandRaise.SessionServer.SessionTest do
   use HandRaise.DataCase
 
-  alias HandRaise.SessionServer.{Session, User}
+  alias HandRaise.SessionServer.{Session, SessionRegistry, User}
 
   describe "#start/0" do
     test "It starts an empty Session managed by HandRaise.SessionServer.DynamicSupervisor" do
@@ -13,6 +13,33 @@ defmodule HandRaise.SessionServer.SessionTest do
     test "It terminates a Session by HandRaise.SessionServer.DynamicSupervisor" do
       {:ok, pid} = Session.start()
       :ok = Session.terminate(pid)
+    end
+  end
+
+  describe "#get_name/1" do
+    setup [:setup_session]
+
+    test "It builds a name when provided with a PID", %{session: session} do
+      {:via, Registry, {SessionRegistry, id}} = Session.get_name(session)
+
+      state = Session.get_state(session)
+      assert state.id == id
+    end
+
+    test "It builds a name when provided with a UUID" do
+      id = Ecto.UUID.generate()
+      name = Session.get_name(id)
+      assert name == {:via, Registry, {SessionRegistry, id}}
+    end
+
+    test "It returns the name if provided", %{session: session} do
+      name = Session.get_name(session)
+      assert name == Session.get_name(name)
+    end
+
+    test "It can call to the Session with its Registry name", %{session: session} do
+      name = Session.get_name(session)
+      %Session{} = Session.get_state(name)
     end
   end
 

@@ -14,7 +14,9 @@ defmodule HandRaise.Application do
       HandRaiseWeb.Endpoint,
       HandRaise.Presence,
       # The supervision tree for managing app sessions
-      HandRaise.SessionServer.DynamicSupervisor
+      HandRaise.SessionServer.DynamicSupervisor,
+      # The Registry for storing session names
+      {Registry, keys: :unique, name: HandRaise.SessionServer.SessionRegistry}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

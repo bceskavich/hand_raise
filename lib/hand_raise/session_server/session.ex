@@ -8,7 +8,11 @@ defmodule HandRaise.SessionServer.Session do
   use GenServer
 
   alias Ecto.UUID
-  alias HandRaise.SessionServer.{DynamicSupervisor, User}
+  alias HandRaise.SessionServer.{
+    DynamicSupervisor,
+    User,
+    SessionRegistry
+  }
 
   defstruct [
     :id,
@@ -36,7 +40,7 @@ defmodule HandRaise.SessionServer.Session do
 
   def start_link(kwl \\ []) do
     state = struct(__MODULE__, Map.new(kwl))
-    GenServer.start_link(__MODULE__, state)
+    GenServer.start_link(__MODULE__, state, name: build_name(state.id))
   end
 
   def join(pid, name), do: GenServer.call(pid, {:join, name})
@@ -48,6 +52,16 @@ defmodule HandRaise.SessionServer.Session do
   def get_user(pid, id), do: GenServer.call(pid, {:get_user, id})
 
   def get_state(pid), do: GenServer.call(pid, :get_state)
+
+  def get_name({:via, Registry, {SessionRegistry, _id}} = name), do: name
+  def get_name(uuid) when is_binary(uuid), do: build_name(uuid)
+  def get_name(pid) when is_pid(pid) do
+    with %__MODULE__{id: id} <- get_state(pid) do
+      build_name(id)
+    else
+      err -> err
+    end
+  end
 
   # Callbacks
 
@@ -88,4 +102,8 @@ defmodule HandRaise.SessionServer.Session do
   def terminate(reason, %__MODULE__{id: id}) do
     IO.puts("Session server #{id} shutting down for reason: #{reason}")
   end
+
+  # Helpers
+
+  defp build_name(id), do: {:via, Registry, {SessionRegistry, id}}
 end
