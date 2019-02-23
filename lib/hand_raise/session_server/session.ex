@@ -43,13 +43,13 @@ defmodule HandRaise.SessionServer.Session do
     GenServer.start_link(__MODULE__, state, name: build_name(state.id))
   end
 
-  def join(pid, name), do: GenServer.call(pid, {:join, name})
+  def is_alive?(pid), do: GenServer.whereis(pid) != nil
 
-  def leave(pid, id), do: GenServer.cast(pid, {:leave, id})
+  def join(pid, opts), do: GenServer.cast(pid, {:join, opts})
 
-  def toggle_raise(pid, id), do: GenServer.cast(pid, {:toggle_raise, id})
+  def leave(pid, uid), do: GenServer.cast(pid, {:leave, uid})
 
-  def get_user(pid, id), do: GenServer.call(pid, {:get_user, id})
+  def toggle_raise(pid, uid), do: GenServer.cast(pid, {:toggle_raise, uid})
 
   def get_state(pid), do: GenServer.call(pid, :get_state)
 
@@ -66,41 +66,29 @@ defmodule HandRaise.SessionServer.Session do
   # Callbacks
 
   def init(%__MODULE__{} = state) do
-    Process.flag(:trap_exit, true)
     {:ok, state}
   end
 
-  def handle_call({:join, name}, _from, %__MODULE__{users: users} = state) do
-    user = User.new(name: name)
-    {:reply, user, %__MODULE__{state | users: [user | users]}}
-  end
-  def handle_call({:get_user, id}, _from, %__MODULE__{users: users} = state) do
-    {:reply, User.find(users, id), state}
-  end
   def handle_call(:get_state, _from, state) do
     {:reply, state, state}
   end
 
-  def handle_cast({:toggle_raise, id}, %__MODULE__{users: users} = state) do
+  def handle_cast({:join, opts}, %__MODULE__{users: users} = state) do
+    {:noreply, %__MODULE__{state | users: [User.new(opts) | users]}}
+  end
+  def handle_cast({:leave, uid}, %__MODULE__{users: users} = state) do
+    next_users = users |> Enum.filter(&(&1.id != uid))
+    {:noreply, %__MODULE__{state | users: next_users}}
+  end
+  def handle_cast({:toggle_raise, uid}, %__MODULE__{users: users} = state) do
     next_users =
       users
       |> Enum.map(fn
-        %User{id: uid} = user when uid == id ->
-          User.toggle_raised(user)
-
-        user ->
-          user
+        %User{id: id} = user when id == uid -> User.toggle_raised(user)
+        user -> user
       end)
 
     {:noreply, %__MODULE__{state | users: next_users}}
-  end
-  def handle_cast({:leave, id}, %__MODULE__{users: users} = state) do
-    next_users = users |> Enum.filter(&(&1.id != id))
-    {:noreply, %__MODULE__{state | users: next_users}}
-  end
-
-  def terminate(reason, %__MODULE__{id: id}) do
-    IO.puts("Session server #{id} shutting down for reason: #{reason}")
   end
 
   # Helpers

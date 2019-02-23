@@ -1,7 +1,7 @@
 defmodule HandRaiseWeb.Endpoint do
   use Phoenix.Endpoint, otp_app: :hand_raise
 
-  socket "/socket", HandRaiseWeb.UserSocket,
+  socket "/socket", HandRaiseWeb.AppSocket,
     websocket: true,
     longpoll: false
 
