@@ -1,7 +1,12 @@
 defmodule HandRaise.SessionServer.SessionTest do
   use HandRaise.DataCase
 
-  alias HandRaise.SessionServer.{Session, SessionRegistry, User}
+  alias Ecto.UUID
+  alias HandRaise.SessionServer.{
+    Session,
+    SessionRegistry,
+    User
+  }
 
   describe "#start/0" do
     test "It starts an empty Session managed by HandRaise.SessionServer.DynamicSupervisor" do
@@ -47,9 +52,14 @@ defmodule HandRaise.SessionServer.SessionTest do
     setup [:setup_session]
 
     test "A new user can join the Session", %{session: session} do
-      %User{} = user = Session.join(session, "Jane Doe")
-      assert user.name == "Jane Doe"
-      assert user.is_raised == false
+      with uid <- UUID.generate(),
+           :ok <- Session.join(session, id: uid, name: "Jane Doe"),
+           %Session{users: [user]} <- Session.get_state(session)
+      do
+        assert user.id == uid
+        assert user.name == "Jane Doe"
+        assert user.is_raised == false
+      end
     end
   end
 
@@ -57,12 +67,13 @@ defmodule HandRaise.SessionServer.SessionTest do
     setup [:setup_session]
 
     test "It can toggle the `is_raised` flag for a user in the Session", %{session: session} do
-      %User{id: uid, is_raised: is_raised} = Session.join(session, "Jane Doe")
-      assert is_raised == false
-
-      :ok = Session.toggle_raise(session, uid)
-      user = Session.get_user(session, uid)
-      assert user.is_raised
+      with uid <- UUID.generate(),
+           :ok <- Session.join(session, id: uid, name: "Jane Doe"),
+           :ok <- Session.toggle_raise(session, uid),
+           %Session{users: [user]} <- Session.get_state(session)
+      do
+        assert user.is_raised
+      end
     end
 
     test "It will simply ignore a toggle for a user that does not exist", %{session: session} do
@@ -74,10 +85,13 @@ defmodule HandRaise.SessionServer.SessionTest do
     setup [:setup_session]
 
     test "A user can leave the Session", %{session: session} do
-      %User{id: uid} = Session.join(session, "Jane Doe")
-
-      :ok = Session.leave(session, uid)
-      assert Session.get_user(session, uid) == nil
+      with uid <- UUID.generate(),
+           :ok <- Session.join(session, id: uid, name: "Jane Doe"),
+           :ok <- Session.leave(session, uid),
+           %Session{users: users} <- Session.get_state(session)
+      do
+        assert length(users) == 0
+      end
     end
 
     test "It will simply ignore a leave call for a user that does not exist", %{session: session} do
@@ -89,16 +103,17 @@ defmodule HandRaise.SessionServer.SessionTest do
     setup [:setup_session]
 
     test "Returns the current Session state", %{session: session} do
-      user1 = Session.join(session, "Jane Doe")
-      user2 = Session.join(session, "John Doe")
-      Session.toggle_raise(session, user1.id)
-
-      state = Session.get_state(session)
-      assert state.id != nil
-      assert state.users == [
-        Session.get_user(session, user2.id),
-        Session.get_user(session, user1.id)
-      ]
+      with uid <- UUID.generate(),
+           :ok <- Session.join(session, id: uid, name: "Jane Doe"),
+           :ok <- Session.join(session, name: "John Doe"),
+           :ok <- Session.toggle_raise(session, uid),
+           %Session{id: sid, users: users} <- Session.get_state(session)
+      do
+        assert sid != nil
+        assert length(users) == 2
+        assert match?(%User{name: "John Doe", is_raised: false}, Enum.at(users, 0))
+        assert match?(%User{name: "Jane Doe", is_raised: true}, Enum.at(users, 1))
+      end
     end
   end
 

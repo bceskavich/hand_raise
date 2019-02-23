@@ -8,8 +8,12 @@ defmodule HandRaise.SessionServer.User do
   ]
 
   def new(kwl \\ []) do
-    struct(__MODULE__, Map.new(kwl))
-    |> Map.put(:id, UUID.generate())
+    opts =
+      kwl
+      |> Map.new()
+      |> Map.put_new(:id, UUID.generate())
+
+    struct(__MODULE__, opts)
   end
 
   def find(users, id) do

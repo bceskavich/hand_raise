@@ -1,9 +1,9 @@
-defmodule HandRaiseWeb.UserSocket do
+defmodule HandRaiseWeb.AppSocket do
   use Phoenix.Socket
 
   ## Channels
   channel "room:lobby", HandRaiseWeb.LobbyChannel
-  # channel "room:*", HandRaiseWeb.SessionChannel
+  channel "session:*", HandRaiseWeb.SessionChannel
 
   # Socket params are passed from the client and can
   # be used to verify and authenticate a user. After
@@ -19,7 +19,7 @@ defmodule HandRaiseWeb.UserSocket do
   def connect(%{"token" => token}, socket, _connect_info) do
     case Phoenix.Token.verify(socket, "socket_user", token, max_age: 1209600) do
       {:ok, user_id} ->
-        {:ok, assign(socket, :current_user, user_id)}
+        {:ok, assign(socket, :user_id, user_id)}
       {:error, _reason} ->
         :error
     end
