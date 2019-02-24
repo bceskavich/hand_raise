@@ -7,7 +7,6 @@ defmodule HandRaise.SessionServer.Session do
 
   use GenServer
 
-  alias Ecto.UUID
   alias HandRaise.SessionServer.{
     DynamicSupervisor,
     User,
@@ -20,9 +19,11 @@ defmodule HandRaise.SessionServer.Session do
     users: []
   ]
 
+  @id_chars ~w(A B C D E F G H I J K L M N O P Q R S T U V W X Y Z)
+
   @type t() :: %__MODULE__{id: binary(), users: [User.t()]}
   @type session_name() :: {:via, Registry, {SessionRegistry, binary()}}
-  @type sid() :: session_name() | pid()
+  @type sname() :: session_name() | pid()
 
   # DynamicSupervisor management
 
@@ -32,9 +33,24 @@ defmodule HandRaise.SessionServer.Session do
   """
   @spec start() :: DynamicSupervisor.on_start_child()
   def start() do
-    session_id = UUID.generate()
+    session_id = generate_session_id()
     spec = Supervisor.child_spec({__MODULE__, [id: session_id]}, id: {__MODULE__, session_id})
     DynamicSupervisor.start_child(spec)
+  end
+
+  defp generate_session_id() do
+    sid =
+      (1..6)
+      |> Enum.map(fn _ -> Enum.random(@id_chars) end)
+      |> Enum.join("")
+
+    sid
+    |> build_name()
+    |> is_alive?()
+    |> case do
+      true -> generate_session_id()
+      false -> sid
+    end
   end
 
   @doc """
@@ -68,36 +84,36 @@ defmodule HandRaise.SessionServer.Session do
     GenServer.start_link(__MODULE__, state, name: build_name(state.id))
   end
 
-  @spec is_alive?(sid()) :: boolean()
-  def is_alive?(sid)
+  @spec is_alive?(sname()) :: boolean()
+  def is_alive?(sname)
   def is_alive?(pid) when is_pid(pid), do: Process.alive?(pid)
   def is_alive?({:via, Registry, {SessionRegistry, _id}} = name) do
     GenServer.whereis(name) != nil
   end
 
-  @spec join(sid(), list()) :: :ok
-  def join(sid, opts), do: GenServer.cast(sid, {:join, opts})
+  @spec join(sname(), list()) :: :ok
+  def join(sname, opts), do: GenServer.cast(sname, {:join, opts})
 
-  @spec leave(sid(), binary()) :: :ok
-  def leave(sid, uid), do: GenServer.cast(sid, {:leave, uid})
+  @spec leave(sname(), binary()) :: :ok
+  def leave(sname, uid), do: GenServer.cast(sname, {:leave, uid})
 
-  @spec toggle_raise(sid(), binary()) :: :ok
-  def toggle_raise(sid, uid), do: GenServer.cast(sid, {:toggle_raise, uid})
+  @spec toggle_raise(sname(), binary()) :: :ok
+  def toggle_raise(sname, uid), do: GenServer.cast(sname, {:toggle_raise, uid})
 
-  @spec get_state(sid()) :: t()
-  def get_state(sid), do: GenServer.call(sid, :get_state)
+  @spec get_state(sname()) :: t()
+  def get_state(sname), do: GenServer.call(sname, :get_state)
 
-  @spec get_pid(sid()) :: pid()
-  def get_pid(sid)
+  @spec get_pid(sname()) :: pid()
+  def get_pid(sname)
   def get_pid(pid) when is_pid(pid), do: pid
   def get_pid({:via, Registry, {SessionRegistry, _id}} = name) do
     GenServer.call(name, :get_pid)
   end
 
-  @spec get_name(sid() | binary()) :: session_name()
-  def get_name(sid)
+  @spec get_name(sname() | binary()) :: session_name()
+  def get_name(sname)
   def get_name({:via, Registry, {SessionRegistry, _id}} = name), do: name
-  def get_name(uuid) when is_binary(uuid), do: build_name(uuid)
+  def get_name(sid) when is_binary(sid), do: build_name(sid)
   def get_name(pid) when is_pid(pid) do
     with %__MODULE__{id: id} <- get_state(pid) do
       build_name(id)
