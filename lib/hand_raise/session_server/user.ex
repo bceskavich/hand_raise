@@ -23,10 +23,7 @@ defmodule HandRaise.SessionServer.User do
     struct(__MODULE__, opts)
   end
 
-  def find(users, id) do
-    users
-    |> Enum.find(fn %__MODULE__{id: uid} -> uid == id end)
-  end
+  def find(users, uid), do: Enum.find(users, & &1.id == uid)
 
   def toggle_raised(%__MODULE__{is_raised: is_raised} = user) do
     %__MODULE__{user | is_raised: !is_raised}
