@@ -1,10 +1,8 @@
 import React from 'react';
 
-export default ({ user, currentUser }) => {
-  return (
-    <p>
-      {user.id} {user.id === currentUser ? ' (you)' : ''}{' '}
-      {user.isHandRaised ? '(raised)' : ''}
-    </p>
-  );
-};
+export default ({ user, currentUserId }) => (
+  <div>
+    {user.name} {user.id === currentUserId ? ' (you)' : ''}{' '}
+    {user.is_raised ? ' (raised)' : ''}
+  </div>
+);

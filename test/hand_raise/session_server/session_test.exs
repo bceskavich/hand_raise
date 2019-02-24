@@ -3,6 +3,7 @@ defmodule HandRaise.SessionServer.SessionTest do
 
   alias Ecto.UUID
   alias HandRaise.SessionServer.{
+    DynamicSupervisor,
     Session,
     SessionRegistry,
     User
@@ -14,10 +15,40 @@ defmodule HandRaise.SessionServer.SessionTest do
     end
   end
 
-  describe "#terminate/1" do
-    test "It terminates a Session by HandRaise.SessionServer.DynamicSupervisor" do
-      {:ok, pid} = Session.start()
-      :ok = Session.terminate(pid)
+  describe "#is_alive?/1" do
+    test "Returns if the session GenServer is running" do
+      {:ok, session} = Session.start()
+      name = Session.get_name(session)
+
+      assert Session.is_alive?(session)
+      assert Session.is_alive?(name)
+
+      DynamicSupervisor.terminate_child(session)
+
+      assert !Session.is_alive?(session)
+      assert !Session.is_alive?(name)
+    end
+  end
+
+  describe "#terminate_if_empty/1" do
+    setup [:setup_session]
+
+    test "It returns an error if the session isn't alive", %{session: session} do
+      name = Session.get_name(session)
+      DynamicSupervisor.terminate_child(session)
+      assert match?({:error, :not_found}, Session.terminate_if_empty(name))
+    end
+
+    test "It returns an error if the session still has users", %{session: session} do
+      name = Session.get_name(session)
+      Session.join(name, name: "Jane Doe")
+
+      assert match?({:error, :not_empty}, Session.terminate_if_empty(name))
+    end
+
+    test "It terminates the session if empty", %{session: session} do
+      name = Session.get_name(session)
+      assert match?(:ok, Session.terminate_if_empty(name))
     end
   end
 
@@ -45,6 +76,18 @@ defmodule HandRaise.SessionServer.SessionTest do
     test "It can call to the Session with its Registry name", %{session: session} do
       name = Session.get_name(session)
       %Session{} = Session.get_state(name)
+    end
+  end
+
+  describe "#get_pid/1" do
+    setup [:setup_session]
+
+    test "It returns the pid as is if it's a pid", %{session: session} do
+      assert session == Session.get_pid(session)
+    end
+
+    test "It gets the pid for the session name", %{session: session} do
+      assert session == session |> Session.get_name() |> Session.get_pid()
     end
   end
 

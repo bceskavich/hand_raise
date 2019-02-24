@@ -1,14 +1,30 @@
 import { Socket, Presence } from 'phoenix';
 
 const socket = new Socket('/socket', {
-  params: { token: window.session.userToken }
+  params: { token: window.currentUser.token },
 });
+
 socket.connect();
 
-export const channel = socket.channel('room:lobby', {});
-channel
-  .join()
-  .receive('ok', resp => console.log('Joined successfully', resp))
-  .receive('error', resp => console.log('Unable to join', resp));
+export default socket;
 
-export const presence = new Presence(channel);
+export function joinChannel(socket, channelName, args = {}) {
+  const channel = socket.channel(channelName, args);
+
+  return new Promise((resolve, reject) => {
+    channel
+      .join()
+      .receive('ok', response => resolve({ channel, response }))
+      .receive('error', response => reject({ response }));
+  });
+}
+
+export function push(channel, msg, args = {}) {
+  return new Promise((resolve, reject) => {
+    channel
+      .push(msg, args)
+      .receive('ok', resolve)
+      .receive('error', reject)
+      .receive('timeout', reject);
+  });
+}

@@ -1,11 +1,18 @@
 defmodule HandRaise.SessionServer.User do
   alias Ecto.UUID
 
+  @derive Jason.Encoder
   defstruct [
     :name,
     :id,
     is_raised: false
   ]
+
+  @type t() :: %__MODULE__{
+    name: binary(),
+    id: binary(),
+    is_raised: boolean()
+  }
 
   def new(kwl \\ []) do
     opts =
