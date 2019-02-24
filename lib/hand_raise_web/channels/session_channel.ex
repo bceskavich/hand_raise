@@ -7,7 +7,7 @@ defmodule HandRaiseWeb.SessionChannel do
     name = Session.get_name(session_id)
 
     case Session.is_alive?(name) do
-      true -> {:ok, assign(socket, :session, name)}
+      true -> {:ok, Session.get_state(name), assign(socket, :session, name)}
       false -> {:error, %{reason: "Session terminated"}}
     end
   end
@@ -32,10 +32,10 @@ defmodule HandRaiseWeb.SessionChannel do
   def terminate({:shutdown, :closed}, socket), do: leave(socket)
 
   defp leave(socket) do
-    socket.assigns[:session]
-    |> Session.leave(socket.assigns[:user_id])
-
+    sid = socket.assigns[:session]
+    Session.leave(sid, socket.assigns[:user_id])
     state_change(socket)
+    Session.terminate_if_empty(sid)
   end
 
   defp state_change(socket) do

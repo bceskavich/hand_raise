@@ -11,7 +11,7 @@ defmodule HandRaiseWeb.LobbyChannel do
     with {:ok, pid} <- Session.start(),
          %Session{id: sid} <- Session.get_state(pid)
     do
-      {:reply, {:ok, %{session_id: sid}}, socket}
+      {:reply, {:ok, %{session_id: sid}}, assign(socket, :session_pid, pid)}
     end
   end
 end
