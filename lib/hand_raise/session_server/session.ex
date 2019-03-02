@@ -7,11 +7,8 @@ defmodule HandRaise.SessionServer.Session do
 
   use GenServer
 
-  alias HandRaise.SessionServer.{
-    DynamicSupervisor,
-    User,
-    SessionRegistry
-  }
+  alias HandRaise.SessionServer.{User, SessionRegistry}
+  alias HandRaise.SessionServer.DynamicSupervisor, as: DS
 
   @derive Jason.Encoder
   defstruct [
@@ -35,7 +32,7 @@ defmodule HandRaise.SessionServer.Session do
   def start() do
     session_id = generate_session_id()
     spec = Supervisor.child_spec({__MODULE__, [id: session_id]}, id: {__MODULE__, session_id})
-    DynamicSupervisor.start_child(spec)
+    DS.start_child(spec)
   end
 
   defp generate_session_id() do
@@ -65,7 +62,7 @@ defmodule HandRaise.SessionServer.Session do
           %__MODULE__{users: []} ->
             name
             |> get_pid()
-            |> DynamicSupervisor.terminate_child()
+            |> DS.terminate_child()
 
           _ ->
             {:error, :not_empty}
@@ -78,7 +75,7 @@ defmodule HandRaise.SessionServer.Session do
 
   # API
 
-  @spec start_link(list()) :: :ok
+  @spec start_link(list()) :: GenServer.on_start()
   def start_link(kwl \\ []) do
     state = struct(__MODULE__, Map.new(kwl))
     GenServer.start_link(__MODULE__, state, name: build_name(state.id))
@@ -91,13 +88,13 @@ defmodule HandRaise.SessionServer.Session do
     GenServer.whereis(name) != nil
   end
 
-  @spec join(sname(), list()) :: :ok
+  @spec join(sname(), list()) :: t()
   def join(sname, opts), do: GenServer.call(sname, {:join, opts})
 
-  @spec leave(sname(), binary()) :: :ok
+  @spec leave(sname(), binary()) :: t()
   def leave(sname, uid), do: GenServer.call(sname, {:leave, uid})
 
-  @spec toggle_raise(sname(), binary()) :: :ok
+  @spec toggle_raise(sname(), binary()) :: t()
   def toggle_raise(sname, uid), do: GenServer.call(sname, {:toggle_raise, uid})
 
   @spec get_state(sname()) :: t()
