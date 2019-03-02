@@ -96,8 +96,7 @@ defmodule HandRaise.SessionServer.SessionTest do
 
     test "A new user can join the Session", %{session: session} do
       with uid <- UUID.generate(),
-           :ok <- Session.join(session, id: uid, name: "Jane Doe"),
-           %Session{users: [user]} <- Session.get_state(session)
+           %Session{users: [user]} <- Session.join(session, id: uid, name: "Jane Doe")
       do
         assert user.id == uid
         assert user.name == "Jane Doe"
@@ -111,16 +110,15 @@ defmodule HandRaise.SessionServer.SessionTest do
 
     test "It can toggle the `is_raised` flag for a user in the Session", %{session: session} do
       with uid <- UUID.generate(),
-           :ok <- Session.join(session, id: uid, name: "Jane Doe"),
-           :ok <- Session.toggle_raise(session, uid),
-           %Session{users: [user]} <- Session.get_state(session)
+           %Session{} <- Session.join(session, id: uid, name: "Jane Doe"),
+           %Session{users: [user]} <- Session.toggle_raise(session, uid)
       do
         assert user.is_raised
       end
     end
 
     test "It will simply ignore a toggle for a user that does not exist", %{session: session} do
-      :ok = Session.toggle_raise(session, "does-not-exist")
+      %Session{} = Session.toggle_raise(session, "does-not-exist")
     end
   end
 
@@ -129,16 +127,15 @@ defmodule HandRaise.SessionServer.SessionTest do
 
     test "A user can leave the Session", %{session: session} do
       with uid <- UUID.generate(),
-           :ok <- Session.join(session, id: uid, name: "Jane Doe"),
-           :ok <- Session.leave(session, uid),
-           %Session{users: users} <- Session.get_state(session)
+           %Session{} <- Session.join(session, id: uid, name: "Jane Doe"),
+           %Session{users: users} <- Session.leave(session, uid)
       do
         assert length(users) == 0
       end
     end
 
     test "It will simply ignore a leave call for a user that does not exist", %{session: session} do
-      :ok = Session.leave(session, "does-not-exist")
+      %Session{} = Session.leave(session, "does-not-exist")
     end
   end
 
@@ -147,9 +144,9 @@ defmodule HandRaise.SessionServer.SessionTest do
 
     test "Returns the current Session state", %{session: session} do
       with uid <- UUID.generate(),
-           :ok <- Session.join(session, id: uid, name: "Jane Doe"),
-           :ok <- Session.join(session, name: "John Doe"),
-           :ok <- Session.toggle_raise(session, uid),
+           %Session{} <- Session.join(session, id: uid, name: "Jane Doe"),
+           %Session{} <- Session.join(session, name: "John Doe"),
+           %Session{} <- Session.toggle_raise(session, uid),
            %Session{id: sid, users: users} <- Session.get_state(session)
       do
         assert sid != nil

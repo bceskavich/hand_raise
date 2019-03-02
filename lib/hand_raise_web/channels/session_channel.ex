@@ -15,16 +15,16 @@ defmodule HandRaiseWeb.SessionChannel do
   def handle_in("set_user", %{"name" => name}, socket) do
     socket.assigns[:session]
     |> Session.join(id: socket.assigns[:user_id], name: name)
+    |> state_change(socket)
 
-    state_change(socket)
     {:reply, :ok, socket}
   end
 
   def handle_in("toggle_raised", %{"user_id" => uid}, socket) do
     socket.assigns[:session]
     |> Session.toggle_raise(uid)
+    |> state_change(socket)
 
-    state_change(socket)
     {:noreply, socket}
   end
 
@@ -33,16 +33,12 @@ defmodule HandRaiseWeb.SessionChannel do
 
   defp leave(socket) do
     sid = socket.assigns[:session]
+
     Session.leave(sid, socket.assigns[:user_id])
-    state_change(socket)
+    |> state_change(socket)
+
     Session.terminate_if_empty(sid)
   end
 
-  defp state_change(socket) do
-    state =
-      socket.assigns[:session]
-      |> Session.get_state()
-
-    broadcast(socket, "state_change", state)
-  end
+  defp state_change(state, socket), do: broadcast(socket, "state_change", state)
 end
