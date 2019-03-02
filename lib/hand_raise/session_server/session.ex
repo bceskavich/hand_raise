@@ -92,13 +92,13 @@ defmodule HandRaise.SessionServer.Session do
   end
 
   @spec join(sname(), list()) :: :ok
-  def join(sname, opts), do: GenServer.cast(sname, {:join, opts})
+  def join(sname, opts), do: GenServer.call(sname, {:join, opts})
 
   @spec leave(sname(), binary()) :: :ok
-  def leave(sname, uid), do: GenServer.cast(sname, {:leave, uid})
+  def leave(sname, uid), do: GenServer.call(sname, {:leave, uid})
 
   @spec toggle_raise(sname(), binary()) :: :ok
-  def toggle_raise(sname, uid), do: GenServer.cast(sname, {:toggle_raise, uid})
+  def toggle_raise(sname, uid), do: GenServer.call(sname, {:toggle_raise, uid})
 
   @spec get_state(sname()) :: t()
   def get_state(sname), do: GenServer.call(sname, :get_state)
@@ -126,29 +126,32 @@ defmodule HandRaise.SessionServer.Session do
     {:ok, state}
   end
 
-  def handle_call(:get_state, _from, state) do
+  def handle_call({:join, opts}, _from, %__MODULE__{users: users} = state) do
+    state = %__MODULE__{state | users: [User.new(opts) | users]}
     {:reply, state, state}
   end
-  def handle_call(:get_pid, _from, state) do
-    {:reply, self(), state}
+  def handle_call({:leave, uid}, _from, %__MODULE__{users: users} = state) do
+    users = users |> Enum.filter(&(&1.id != uid))
+    state = %__MODULE__{state | users: users}
+    {:reply, state, state}
   end
-
-  def handle_cast({:join, opts}, %__MODULE__{users: users} = state) do
-    {:noreply, %__MODULE__{state | users: [User.new(opts) | users]}}
-  end
-  def handle_cast({:leave, uid}, %__MODULE__{users: users} = state) do
-    next_users = users |> Enum.filter(&(&1.id != uid))
-    {:noreply, %__MODULE__{state | users: next_users}}
-  end
-  def handle_cast({:toggle_raise, uid}, %__MODULE__{users: users} = state) do
-    next_users =
+  def handle_call({:toggle_raise, uid}, _from, %__MODULE__{users: users} = state) do
+    users =
       users
       |> Enum.map(fn
         %User{id: id} = user when id == uid -> User.toggle_raised(user)
         user -> user
       end)
 
-    {:noreply, %__MODULE__{state | users: next_users}}
+    state = %__MODULE__{state | users: users}
+
+    {:reply, state, state}
+  end
+  def handle_call(:get_state, _from, state) do
+    {:reply, state, state}
+  end
+  def handle_call(:get_pid, _from, state) do
+    {:reply, self(), state}
   end
 
   # Helpers
