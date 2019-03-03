@@ -1,7 +1,12 @@
-import React, { useState } from 'react';
+import React, { FC, useState } from 'react';
+import { Channel } from 'phoenix';
 import { push } from '../lib/socket';
 
-export default function UserForm({ channel }) {
+interface Props {
+  channel?: Channel;
+}
+
+const UserForm: FC<Props> = ({ channel }) => {
   const [name, setName] = useState('');
 
   return (
@@ -23,3 +28,5 @@ export default function UserForm({ channel }) {
     </form>
   );
 }
+
+export default UserForm;

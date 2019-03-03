@@ -1,11 +1,26 @@
 import React, { Component } from 'react';
-import { Redirect } from 'react-router-dom';
+import { Redirect, match as Match } from 'react-router-dom';
+import { Channel } from 'phoenix';
 import socket, { joinChannel } from '../lib/socket';
 import SessionUser from './SessionUser';
 import UserForm from './UserForm';
+import { SessionUser as User } from '../interfaces';
 
-export default class Session extends Component {
-  constructor(props) {
+interface SessionProps {
+  match: Match<{ id: string }>;
+}
+
+interface SessionState {
+  users: User[];
+  sessionId: string;
+  currentUserId: string;
+  isConnecting: boolean;
+  error: boolean;
+  channel?: Channel;
+}
+
+export default class Session extends Component<SessionProps, SessionState> {
+  constructor(props: SessionProps) {
     super(props);
     this.state = {
       users: [],
@@ -13,8 +28,7 @@ export default class Session extends Component {
       currentUserId: window.currentUser.id,
       isConnecting: true,
       error: false,
-      channel: null,
-    };
+    }
   }
 
   get currentUser() {
@@ -40,7 +54,7 @@ export default class Session extends Component {
 
   toggle = () => {
     const { channel, currentUserId } = this.state;
-    channel.push('toggle_raised', { user_id: currentUserId });
+    channel && channel.push('toggle_raised', { user_id: currentUserId });
   };
 
   renderSession() {
