@@ -1,16 +1,18 @@
 import React, { Component } from 'react';
 import { Redirect } from 'react-router-dom';
+import { Channel } from 'phoenix';
 import socket, { joinChannel, push } from '../lib/socket';
-import Session from './Session';
 import JoinSessionForm from './JoinSessionForm';
 
-export default class Lobby extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      channel: null,
-      sessionId: null,
-    };
+interface LobbyState {
+  channel?: Channel;
+  sessionId?: string;
+}
+
+export default class Lobby extends Component<{}, LobbyState> {
+  readonly state: LobbyState = {
+    channel: undefined,
+    sessionId: undefined,
   }
 
   async componentDidMount() {
@@ -25,7 +27,7 @@ export default class Lobby extends Component {
   };
 
   render() {
-    const { users, channel, sessionId } = this.state;
+    const { channel, sessionId } = this.state;
     return (
       <div>
         <h1>Hand Raise</h1>

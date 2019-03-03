@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 
-export default function JoinSessionForm({ channel }) {
+export default function JoinSessionForm() {
   const [sessionId, setSessionId] = useState('');
 
   return (
     <form
       onSubmit={e => {
         e.preventDefault();
-        window.location = `/${sessionId}`;
+        window.location.assign(`/${sessionId}`);
       }}
     >
       <label>
